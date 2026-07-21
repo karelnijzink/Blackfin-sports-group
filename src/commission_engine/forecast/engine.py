@@ -132,7 +132,7 @@ def detect_stream_flags(stream: list[MonthlyEntry], *, as_of: date) -> list[Flag
         )
 
     # outliers: a month far above its neighbours skews every trailing method
-    for i, entry in enumerate(stream):
+    for entry in stream:
         neighbours = [
             float(other.commission_2dp)
             for other in stream
@@ -157,8 +157,8 @@ def detect_stream_flags(stream: list[MonthlyEntry], *, as_of: date) -> list[Flag
                         f"months — is that a one-off, or volume to expect again?"
                     ),
                     detail=(
-                        f"{entry.commission_2dp:,.2f} vs neighbour median {median:,.2f} "
-                        f"({entry.deal_count} deals in the month)"
+                        f"{entry.commission_2dp:,.2f} vs neighbour median {median:,.2f}; "
+                        f"{entry.deal_count} deals in the month"
                     ),
                 )
             )
@@ -194,7 +194,9 @@ def run_forecast(loaded: LoadResult, *, as_of: date, horizon: int = 12) -> Forec
         try:
             projected = fn(values, horizon)
         except ValueError as exc:
-            results.append(MethodResult(key=key, label=label, monthly=[], total=None, error=str(exc)))
+            results.append(
+                MethodResult(key=key, label=label, monthly=[], total=None, error=str(exc))
+            )
             continue
         monthly = [_quantize(v) for v in projected]
         results.append(

@@ -26,25 +26,39 @@ class TestFlatRate:
         with pytest.raises(ValueError):
             FlatRate(Decimal("-0.10"))
 
+    def test_describe_plain_digits(self):
+        # regression: Decimal.normalize() alone renders 10 as 1E+1
+        assert FlatRate(Decimal("0.10")).describe() == "flat 10% of gross"
+        assert FlatRate(Decimal("0.125")).describe() == "flat 12.5% of gross"
+
 
 class TestTieredMarginalBands:
     def test_marginal_math_across_two_bands(self):
         # 10% on the first 100k, 15% above: gross 150k
         # -> 100000*0.10 + 50000*0.15 = 10000 + 7500 = 17500
         rule = Tiered(
-            [Tier(up_to=Decimal("100000"), rate=Decimal("0.10")), Tier(up_to=None, rate=Decimal("0.15"))]
+            [
+                Tier(up_to=Decimal("100000"), rate=Decimal("0.10")),
+                Tier(up_to=None, rate=Decimal("0.15")),
+            ]
         )
         assert rule.commission(Decimal("150000")) == Decimal("17500.00")
 
     def test_gross_below_first_threshold_uses_only_first_band(self):
         rule = Tiered(
-            [Tier(up_to=Decimal("100000"), rate=Decimal("0.10")), Tier(up_to=None, rate=Decimal("0.15"))]
+            [
+                Tier(up_to=Decimal("100000"), rate=Decimal("0.10")),
+                Tier(up_to=None, rate=Decimal("0.15")),
+            ]
         )
         assert rule.commission(Decimal("40000")) == Decimal("4000.00")
 
     def test_gross_exactly_at_threshold(self):
         rule = Tiered(
-            [Tier(up_to=Decimal("100000"), rate=Decimal("0.10")), Tier(up_to=None, rate=Decimal("0.15"))]
+            [
+                Tier(up_to=Decimal("100000"), rate=Decimal("0.10")),
+                Tier(up_to=None, rate=Decimal("0.15")),
+            ]
         )
         assert rule.commission(Decimal("100000")) == Decimal("10000.00")
 

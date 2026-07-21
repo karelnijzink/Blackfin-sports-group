@@ -2,6 +2,8 @@
 
 from decimal import Decimal
 
+from .base import format_rate_pct
+
 
 class FlatRate:
     def __init__(self, rate: Decimal):
@@ -14,8 +16,7 @@ class FlatRate:
         return gross * self.rate
 
     def describe(self) -> str:
-        pct = (self.rate * 100).normalize()
-        return f"flat {pct}% of gross"
+        return f"flat {format_rate_pct(self.rate)}% of gross"
 
     def __repr__(self) -> str:
         return f"FlatRate(rate={self.rate})"

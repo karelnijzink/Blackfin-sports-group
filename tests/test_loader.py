@@ -14,10 +14,23 @@ from commission_engine.rules.flat import FlatRate
 TEN_PERCENT = FlatRate(Decimal("0.10"))
 
 HEADER = [
-    "Deal Name", "Pipeline", "Deal Stage", "Amount", "Annual Payment Date",
-    "Close Date", "Deal Owner", "Deal Type", "Priority", "Period Start",
-    "Period End", "Sales Amount", "Commission Amount", "Revenue Source",
-    "Invoice Reference", "Company Name (for association)", "Record ID",
+    "Deal Name",
+    "Pipeline",
+    "Deal Stage",
+    "Amount",
+    "Annual Payment Date",
+    "Close Date",
+    "Deal Owner",
+    "Deal Type",
+    "Priority",
+    "Period Start",
+    "Period End",
+    "Sales Amount",
+    "Commission Amount",
+    "Revenue Source",
+    "Invoice Reference",
+    "Company Name (for association)",
+    "Record ID",
 ]
 
 
@@ -67,7 +80,9 @@ def test_cross_check_raises_beyond_5_cents(tmp_path, blast_media_csv):
 
 def test_cross_check_tolerates_rounding_within_5_cents(tmp_path):
     # 894.75 * 0.10 = 89.475 computed vs 89.47 recorded: within tolerance
-    p = write_csv(tmp_path / "ok.csv", [row(**{"Sales Amount": "894.75", "Commission Amount": "89.47"})])
+    p = write_csv(
+        tmp_path / "ok.csv", [row(**{"Sales Amount": "894.75", "Commission Amount": "89.47"})]
+    )
     loaded = load_hubspot_csv(p, TEN_PERCENT)
     assert len(loaded.deals) == 1
 
@@ -76,7 +91,15 @@ def test_buckets_by_period_start_never_close_date(tmp_path):
     """Close Date in June, Period Start in April: the commission lands in April."""
     p = write_csv(
         tmp_path / "bucket.csv",
-        [row(**{"Close Date": "2025-06-15", "Period Start": "2025-04-01", "Period End": "2025-04-30"})],
+        [
+            row(
+                **{
+                    "Close Date": "2025-06-15",
+                    "Period Start": "2025-04-01",
+                    "Period End": "2025-04-30",
+                }
+            )
+        ],
     )
     loaded = load_hubspot_csv(p, TEN_PERCENT)
     stream = build_monthly_stream(loaded.deals)

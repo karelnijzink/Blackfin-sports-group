@@ -10,6 +10,12 @@ from decimal import Decimal
 from typing import Protocol, runtime_checkable
 
 
+def format_rate_pct(rate: Decimal) -> str:
+    """0.10 -> '10', 0.125 -> '12.5' — plain digits, never scientific notation."""
+    text = format((rate * 100).normalize(), "f")
+    return text.rstrip("0").rstrip(".") if "." in text else text
+
+
 @runtime_checkable
 class CommissionRule(Protocol):
     def commission(self, gross: Decimal) -> Decimal:

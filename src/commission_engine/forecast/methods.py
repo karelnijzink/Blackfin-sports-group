@@ -16,13 +16,11 @@ def run_rate(values: list[float], window: int, horizon: int = 12) -> list[float]
     return [avg] * horizon
 
 
-def blend(
-    values: list[float], windows: tuple[int, int] = (3, 6), horizon: int = 12
-) -> list[float]:
+def blend(values: list[float], windows: tuple[int, int] = (3, 6), horizon: int = 12) -> list[float]:
     """Month-by-month mean of two trailing run-rates (default 3-mo and 6-mo)."""
     first = run_rate(values, window=windows[0], horizon=horizon)
     second = run_rate(values, window=windows[1], horizon=horizon)
-    return [(a + b) / 2 for a, b in zip(first, second)]
+    return [(a + b) / 2 for a, b in zip(first, second, strict=True)]
 
 
 def linear_trend(values: list[float], horizon: int = 12) -> list[float]:
@@ -34,7 +32,7 @@ def linear_trend(values: list[float], horizon: int = 12) -> list[float]:
     x_mean = sum(xs) / n
     y_mean = sum(values) / n
     denominator = sum((x - x_mean) ** 2 for x in xs)
-    slope = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, values)) / denominator
+    slope = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, values, strict=True)) / denominator
     intercept = y_mean - slope * x_mean
     return [intercept + slope * x for x in range(n, n + horizon)]
 

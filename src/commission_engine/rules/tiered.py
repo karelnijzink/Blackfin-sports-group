@@ -8,6 +8,8 @@ earns 100k x 10% + 50k x 15%, not 150k x 15%.
 from decimal import Decimal
 from typing import NamedTuple
 
+from .base import format_rate_pct
+
 
 class Tier(NamedTuple):
     up_to: Decimal | None  # band's upper gross bound; None = open-ended top band
@@ -25,11 +27,13 @@ class Tiered:
             raise ValueError("only the last tier may be open-ended")
         if any(b <= 0 for b in bounds):
             raise ValueError("tier bounds must be positive")
-        if any(later <= earlier for earlier, later in zip(bounds, bounds[1:])):
+        if any(later <= earlier for earlier, later in zip(bounds, bounds[1:], strict=False)):
             raise ValueError(f"tier bounds must strictly ascend, got {bounds}")
         if any(not Decimal("0") <= t.rate <= Decimal("1") for t in tiers):
             raise ValueError("every rate must be between 0 and 1")
-        self.tiers = [Tier(None if t.up_to is None else Decimal(t.up_to), Decimal(t.rate)) for t in tiers]
+        self.tiers = [
+            Tier(None if t.up_to is None else Decimal(t.up_to), Decimal(t.rate)) for t in tiers
+        ]
 
     def commission(self, gross: Decimal) -> Decimal:
         if gross < 0:
@@ -48,7 +52,7 @@ class Tiered:
     def describe(self) -> str:
         parts = []
         for tier in self.tiers:
-            pct = (tier.rate * 100).normalize()
+            pct = format_rate_pct(tier.rate)
             if tier.up_to is None:
                 parts.append(f"{pct}% above that")
             else:

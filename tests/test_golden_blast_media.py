@@ -126,11 +126,16 @@ def test_cli_end_to_end_reproduces_golden_numbers(blast_media_csv, tmp_path, cap
     exit_code = main(
         [
             "run",
-            "--client", "blast_media",
-            "--csv", str(blast_media_csv),
-            "--target", "97000:105000",
-            "--as-of", "2026-07-21",
-            "--out", str(tmp_path),
+            "--client",
+            "blast_media",
+            "--csv",
+            str(blast_media_csv),
+            "--target",
+            "97000:105000",
+            "--as-of",
+            "2026-07-21",
+            "--out",
+            str(tmp_path),
         ]
     )
     assert exit_code == 0
@@ -138,16 +143,15 @@ def test_cli_end_to_end_reproduces_golden_numbers(blast_media_csv, tmp_path, cap
     md = (tmp_path / "blast_media_reconciliation.md").read_text()
     html = (tmp_path / "blast_media_reconciliation.html").read_text()
     for output in (md, html):
-        assert "96,482" in output          # presented blend total
-        assert "117,259" in output         # 3-mo run-rate
-        assert "75,70" in output           # 6-mo run-rate (75,704.60 -> 75,705 rounded)
-        assert "157,70" in output          # linear trend
-        assert "719,40" in output          # geometric growth
-        assert "60,187.27" in output       # historical total
-        assert "June 2026" in output       # gap flag
+        assert "96,482" in output  # presented blend total
+        assert "117,259" in output  # 3-mo run-rate
+        assert "75,70" in output  # 6-mo run-rate (75,704.60 -> 75,705 rounded)
+        assert "157,70" in output  # linear trend
+        assert "719,40" in output  # geometric growth
+        assert "60,187.27" in output  # historical total
+        assert "June 2026" in output  # gap flag
         assert "September 2025" in output  # outlier flag
         assert "Deterministic math. Every number computed by code from the deal export." in output
 
     console = capsys.readouterr().out
     assert "96,482" in console
-
