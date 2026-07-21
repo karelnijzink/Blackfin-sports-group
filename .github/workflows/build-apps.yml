@@ -1,0 +1,127 @@
+name: build-desktop-apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to publish the apps under"
+        required: false
+        default: "apps-v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows
+          - os: macos-latest
+            label: macOS
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install engine and PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install . pyinstaller
+
+      - name: Build app (Windows)
+        if: runner.os == 'Windows'
+        run: >
+          pyinstaller --noconfirm --onefile --windowed --name BlackfinForecast
+          --add-data "clients.yaml;." packaging/launcher.py
+
+      - name: Build app (macOS)
+        if: runner.os == 'macOS'
+        run: >
+          pyinstaller --noconfirm --onefile --windowed --name BlackfinForecast
+          --add-data "clients.yaml:." packaging/launcher.py
+
+      - name: Smoke test the frozen app (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $smoke = Join-Path $env:RUNNER_TEMP "smoke"
+          New-Item -ItemType Directory -Force -Path $smoke | Out-Null
+          Copy-Item "tests/fixtures/Blast_Media_Commission_Deals_Import.csv" $smoke
+          $csv = Join-Path $smoke "Blast_Media_Commission_Deals_Import.csv"
+          $proc = Start-Process -FilePath "dist/BlackfinForecast.exe" -ArgumentList "`"$csv`" 2026-07-21" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "frozen app exited $($proc.ExitCode)" }
+          $html = Join-Path $smoke "Forecast Reports/blast_media_reconciliation.html"
+          if (-not (Test-Path $html)) { throw "report not written" }
+          if (-not (Select-String -Path $html -Pattern "96,482" -Quiet)) { throw "golden number missing" }
+          Write-Host "smoke OK"
+
+      - name: Smoke test the frozen app (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          smoke="$RUNNER_TEMP/smoke"
+          mkdir -p "$smoke"
+          cp tests/fixtures/Blast_Media_Commission_Deals_Import.csv "$smoke/"
+          ./dist/BlackfinForecast "$smoke/Blast_Media_Commission_Deals_Import.csv" 2026-07-21
+          html="$smoke/Forecast Reports/blast_media_reconciliation.html"
+          test -f "$html"
+          grep -q "96,482" "$html"
+          echo "smoke OK"
+
+      - name: Package artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Copy-Item "dist/BlackfinForecast.exe" "release/BlackfinForecast-Windows.exe"
+
+      - name: Package artifact (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p release
+          ditto -c -k --keepParent "dist/BlackfinForecast.app" "release/BlackfinForecast-macOS.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.label }}
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: "Blackfin Commission Forecast — desktop apps (M1)"
+          files: release/*
+          body: |
+            Double-click apps for the Blackfin commission forecast. No terminal, no setup.
+
+            **Windows** — download `BlackfinForecast-Windows.exe` and double-click it.
+            First run only: if a blue "Windows protected your PC" screen appears,
+            click **More info**, then **Run anyway** (the app is unsigned, which is
+            normal for internal tools).
+
+            **Mac** — download `BlackfinForecast-macOS.zip`, double-click to unzip,
+            then **right-click** `BlackfinForecast.app` and choose **Open**, then
+            **Open** again in the dialog. That's only needed the first time.
+
+            Using it: the app asks for the deal export (CSV). Pick the file — the
+            reconciliation report opens in your browser and is saved in a
+            "Forecast Reports" folder next to your export. Print to PDF from the
+            browser if you need a copy to send.
+
+            Every number is computed by code from the export. If the export and the
+            commission rule ever disagree, the app refuses to produce a forecast and
+            tells you which row to check.

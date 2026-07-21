@@ -7,6 +7,7 @@ Read-only throughout: the only thing written is the report.
 
 import argparse
 import sys
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -106,29 +107,35 @@ def _print_summary(report: ReconciliationReport) -> None:
     print()
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = _build_parser().parse_args(argv)
+@dataclass
+class PipelineOutput:
+    report: ReconciliationReport
+    md_path: Path
+    html_path: Path
 
-    client = get_client(args.client, args.clients_file)
-    org = load_organization(args.clients_file)
+
+def run_pipeline(
+    client_id: str,
+    csv_path: Path,
+    out_dir: Path,
+    *,
+    as_of: date | None = None,
+    target: tuple[Decimal, Decimal] | None = None,
+    horizon: int = 12,
+    clients_file: Path | None = None,
+) -> PipelineOutput:
+    """The whole product as one call: load, cross-check, forecast, render,
+    write both report files. Raises CrossCheckError when the export and the
+    configured rule disagree. Shared by the CLI and the desktop app."""
+    client = get_client(client_id, clients_file)
+    org = load_organization(clients_file)
     rule = build_rule(client.rule)
 
-    try:
-        loaded = load_hubspot_csv(args.csv, rule)
-    except CrossCheckError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        print(
-            "The export and the configured rule disagree; no forecast was produced. "
-            "Check the rule in clients.yaml or the export row above.",
-            file=sys.stderr,
-        )
-        return 1
-
-    as_of = args.as_of or date.today()
-    result = run_forecast(loaded, as_of=as_of, horizon=args.horizon)
+    loaded = load_hubspot_csv(csv_path, rule)
+    result = run_forecast(loaded, as_of=as_of or date.today(), horizon=horizon)
 
     target_low, target_high = (
-        args.target if args.target is not None else (client.target_low, client.target_high)
+        target if target is not None else (client.target_low, client.target_high)
     )
     report = build_report(
         client_name=client.display_name,
@@ -142,15 +149,39 @@ def main(argv: list[str] | None = None) -> int:
         prepared_by=org.prepared_by,
     )
 
-    args.out.mkdir(parents=True, exist_ok=True)
-    md_path = args.out / f"{args.client}_reconciliation.md"
-    html_path = args.out / f"{args.client}_reconciliation.html"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    md_path = out_dir / f"{client_id}_reconciliation.md"
+    html_path = out_dir / f"{client_id}_reconciliation.html"
     md_path.write_text(render_markdown(report))
     html_path.write_text(render_html(report))
+    return PipelineOutput(report=report, md_path=md_path, html_path=html_path)
 
-    _print_summary(report)
-    print(f"  Wrote {md_path}")
-    print(f"  Wrote {html_path}")
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
+
+    try:
+        out = run_pipeline(
+            args.client,
+            args.csv,
+            args.out,
+            as_of=args.as_of,
+            target=args.target,
+            horizon=args.horizon,
+            clients_file=args.clients_file,
+        )
+    except CrossCheckError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        print(
+            "The export and the configured rule disagree; no forecast was produced. "
+            "Check the rule in clients.yaml or the export row above.",
+            file=sys.stderr,
+        )
+        return 1
+
+    _print_summary(out.report)
+    print(f"  Wrote {out.md_path}")
+    print(f"  Wrote {out.html_path}")
     return 0
 
 

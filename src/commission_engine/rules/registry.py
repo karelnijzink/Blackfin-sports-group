@@ -5,6 +5,7 @@ registered in RULE_TYPES. The engine, loader, and report code never change
 per client — that is the product thesis, protect it.
 """
 
+import sys
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,18 @@ from .base import CommissionRule
 from .flat import FlatRate
 from .tiered import Tier, Tiered
 
-DEFAULT_CLIENTS_FILE = Path(__file__).resolve().parents[3] / "clients.yaml"
+
+def default_clients_file() -> Path:
+    """clients.yaml location: repo root in a source checkout; inside the
+    bundle when frozen by PyInstaller, unless an editable copy sits next to
+    the executable (the sidecar wins so config stays changeable post-build)."""
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        sidecar = exe_dir / "clients.yaml"
+        if sidecar.exists():
+            return sidecar
+        return Path(getattr(sys, "_MEIPASS", exe_dir)) / "clients.yaml"
+    return Path(__file__).resolve().parents[3] / "clients.yaml"
 
 
 class OrgConfig(BaseModel):
@@ -79,7 +91,7 @@ def build_rule(spec: RuleSpec) -> CommissionRule:
 
 def load_organization(path: str | Path | None = None) -> OrgConfig:
     """The organization block: who the reports are prepared for and by."""
-    path = Path(path) if path else DEFAULT_CLIENTS_FILE
+    path = Path(path) if path else default_clients_file()
     raw = yaml.safe_load(path.read_text())
     org = raw.get("organization") or {}
     return OrgConfig(
@@ -89,7 +101,7 @@ def load_organization(path: str | Path | None = None) -> OrgConfig:
 
 
 def load_clients(path: str | Path | None = None) -> dict[str, ClientConfig]:
-    path = Path(path) if path else DEFAULT_CLIENTS_FILE
+    path = Path(path) if path else default_clients_file()
     raw = yaml.safe_load(path.read_text())
     clients: dict[str, ClientConfig] = {}
     for client_id, cfg in raw["clients"].items():
