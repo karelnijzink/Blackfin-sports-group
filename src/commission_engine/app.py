@@ -11,6 +11,7 @@ by automated packaging smoke tests).
 """
 
 import sys
+import threading
 import webbrowser
 from datetime import date
 from pathlib import Path
@@ -247,7 +248,10 @@ class ForecastWindow:
 
     def open_report(self):
         if self.report_path is not None:
-            webbrowser.open(self.report_path.resolve().as_uri())
+            uri = self.report_path.resolve().as_uri()
+            # some browser launchers block until the browser exits; never
+            # freeze the window over that
+            threading.Thread(target=webbrowser.open, args=(uri,), daemon=True).start()
 
     def run(self):
         self.root.mainloop()
