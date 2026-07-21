@@ -108,6 +108,8 @@ jobs:
           body: |
             Double-click apps for the Blackfin commission forecast. No terminal, no setup.
 
+            <img src="https://raw.githubusercontent.com/karelnijzink/Blackfin-sports-group/main/docs/media/app_idle.png" width="520" alt="The app: one window, one button">
+
             **Windows** — download `BlackfinForecast-Windows.exe` and double-click it.
             First run only: if a blue "Windows protected your PC" screen appears,
             click **More info**, then **Run anyway** (the app is unsigned, which is
@@ -117,11 +119,13 @@ jobs:
             then **right-click** `BlackfinForecast.app` and choose **Open**, then
             **Open** again in the dialog. That's only needed the first time.
 
-            Using it: the app asks for the deal export (CSV). Pick the file — the
-            reconciliation report opens in your browser and is saved in a
-            "Forecast Reports" folder next to your export. Print to PDF from the
-            browser if you need a copy to send.
+            Using it: the app opens as a small window with one button — choose the
+            deal export (CSV). The reconciliation report opens in your browser and
+            is saved in a "Forecast Reports" folder next to your export. Print to
+            PDF from the browser if you need a copy to send.
 
             Every number is computed by code from the export. If the export and the
             commission rule ever disagree, the app refuses to produce a forecast and
-            tells you which row to check.
+            names the exact row to check.
+
+            More pictures and the full guide: see the repository README and HANDOFF.
