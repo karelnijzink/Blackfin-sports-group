@@ -46,11 +46,12 @@ def _show(kind: str, message: str) -> None:
 
         root = tk.Tk()
         root.withdraw()
+        root.attributes("-topmost", True)  # the result must never open behind the browser
         root.update()
         if kind == "error":
-            messagebox.showerror(APP_TITLE, message)
+            messagebox.showerror(APP_TITLE, message, parent=root)
         else:
-            messagebox.showinfo(APP_TITLE, message)
+            messagebox.showinfo(APP_TITLE, message, parent=root)
         root.destroy()
     except Exception:  # no display / no tkinter: still say it somewhere
         print(message, file=sys.stderr if kind == "error" else sys.stdout)
