@@ -23,10 +23,11 @@ tools, so your computer asks once):
   **More info**, then **Run anyway**.
 - *Mac*: **right-click** the app, choose **Open**, then **Open** again.
 
-**3. Use it.** Double-click the app. It asks for the deal export (the CSV
-file). Pick it — that's the whole job. The report opens in your browser
-and is saved in a **Forecast Reports** folder next to your export. Print
-to PDF from the browser if you need a copy to send.
+**3. Use it.** Double-click the app and choose the deal export (the CSV
+file) — that's the whole job. The report appears right in the app, and a
+copy is saved in a **Forecast Reports** folder next to your export. Use
+**Download report…** to save the report file anywhere; it opens in any
+browser and prints cleanly to PDF.
 
 **If the app refuses to make a forecast:** that's a feature, not a crash.
 It means one row's recorded commission doesn't match the commission rule,

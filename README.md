@@ -16,23 +16,23 @@ One window, one job: choose the deal export, read the report.
 <img src="docs/media/app_idle.png" width="560" alt="The desktop app — one button: choose the deal export">
 
 A real run — the engine checks all 48 rows, runs every projection method,
-and the report opens in the browser about a second later:
+and the report appears right in the app about a second later:
 
-<img src="docs/media/demo.gif" width="720" alt="Live run: pick the export, the report opens">
+<img src="docs/media/demo.gif" width="720" alt="Live run: pick the export, the report appears in the app">
 
-The reconciliation report: our computed numbers beside the client's own,
-every method shown, nothing discarded.
+<img src="docs/media/app_report.png" width="640" alt="The report in the app, with Download report and Run another forecast">
+
+The Download button saves the self-contained report file — our computed
+numbers beside the client's own, every method shown, nothing discarded.
+It opens in any browser and prints cleanly to PDF:
 
 <img src="docs/media/report_top.png" width="720" alt="Report headline and method table">
 <img src="docs/media/report_chart.png" width="720" alt="Monthly view: recorded months, then the projection">
 
-After a run — and when a number doesn't check out. The engine refuses to
-forecast on data that fails its cross-check and names the exact row:
+When a number doesn't check out, the engine refuses to forecast and names
+the exact row:
 
-<p>
-<img src="docs/media/app_success.png" width="420" alt="Success: report ready">
-<img src="docs/media/app_refusal.png" width="420" alt="Refusal: no forecast was produced, with the failing row named">
-</p>
+<img src="docs/media/app_refusal.png" width="560" alt="Refusal: no forecast was produced, with the failing row named">
 
 Ground rules, in order:
 

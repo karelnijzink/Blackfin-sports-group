@@ -120,9 +120,10 @@ jobs:
             **Open** again in the dialog. That's only needed the first time.
 
             Using it: the app opens as a small window with one button — choose the
-            deal export (CSV). The reconciliation report opens in your browser and
-            is saved in a "Forecast Reports" folder next to your export. Print to
-            PDF from the browser if you need a copy to send.
+            deal export (CSV). The reconciliation report appears right in the app,
+            a copy is saved in a "Forecast Reports" folder next to your export, and
+            "Download report…" saves the report file anywhere you like (it opens in
+            any browser and prints cleanly to PDF).
 
             Every number is computed by code from the export. If the export and the
             commission rule ever disagree, the app refuses to produce a forecast and
