@@ -1,0 +1,22 @@
+# Per-client configuration. Adding a client means adding an entry here and,
+# at most, one new rule class under src/commission_engine/rules/.
+# Nothing in the engine, loader, or report code changes per client.
+
+clients:
+  blast_media:
+    display_name: Blast Media
+    rule:
+      type: flat
+      rate: "0.10"          # flat 10% of gross, confirmed by client 2026-07-20
+    source:
+      type: csv             # v1: HubSpot export CSV; API adapter is milestone 3
+    target_range:           # client's own expected 12-month number (the answer key)
+      low: "97000"
+      high: "105000"
+    presented_method: blend_3_6
+    presented_rationale: >-
+      Deal volume is growing (client reports roughly one deal a month early on,
+      20-30 a month now), so an all-history average undershoots. The trailing
+      3-month run-rate leans on two unusually strong months; the 6-month
+      run-rate still carries the slower autumn. The 3-mo/6-mo blend balances
+      the two and lands within 0.6% of the client's own expected floor.

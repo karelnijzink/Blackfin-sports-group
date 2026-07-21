@@ -1,0 +1,14 @@
+# real client CSVs live here locally, never in git
+data/
+
+# generated reports
+out/
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
