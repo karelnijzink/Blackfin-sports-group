@@ -14,7 +14,8 @@ from .report import MethodRow, ReconciliationReport
 FOOTER = "Deterministic math. Every number computed by code from the deal export."
 ROUNDING_NOTE = (
     "Monthly figures are shown rounded to the cent; totals are computed on the "
-    "unrounded values, so summing a printed column can differ from its total by a cent."
+    "unrounded values, so summing a printed column can differ from its total by "
+    "a few cents."
 )
 
 
@@ -149,11 +150,29 @@ BASELINE = "#c3c2b7"
 
 
 def _nice_step(raw: float) -> float:
+    if raw <= 0:
+        return 1.0
     magnitude = 10 ** len(str(int(raw))) / 10
     for factor in (1, 2, 2.5, 5, 10):
         if factor * magnitude >= raw:
             return factor * magnitude
     return 10 * magnitude
+
+
+def _bar_path(x: float, bar_w: float, base_y: float, end_y: float) -> str:
+    """A bar from the baseline to end_y: 4px rounded corners at the data end
+    (up for positive values, down for negative), square at the baseline."""
+    r = min(4.0, abs(end_y - base_y), bar_w / 2)
+    direction = -1 if end_y < base_y else 1  # -1: bar grows upward
+    corner_y = end_y - direction * r
+    return (
+        f"M{x:.1f},{base_y:.1f} "
+        f"L{x:.1f},{corner_y:.1f} "
+        f"Q{x:.1f},{end_y:.1f} {x + r:.1f},{end_y:.1f} "
+        f"L{x + bar_w - r:.1f},{end_y:.1f} "
+        f"Q{x + bar_w:.1f},{end_y:.1f} {x + bar_w:.1f},{corner_y:.1f} "
+        f"L{x + bar_w:.1f},{base_y:.1f} Z"
+    )
 
 
 def _svg_chart(report: ReconciliationReport) -> str:
@@ -166,15 +185,22 @@ def _svg_chart(report: ReconciliationReport) -> str:
     left, right, top, bottom = 64, 16, 20, 44
     plot_w, plot_h = width - left - right, height - top - bottom
 
-    peak = max(v for _, v, _ in bars)
-    step = _nice_step(peak / 4)
-    ticks = 0
-    while ticks * step < peak:
-        ticks += 1
-    y_max = ticks * step
+    values = [v for _, v, _ in bars]
+    peak = max(values)
+    trough = min(0.0, min(values))
+    step = _nice_step(max(peak, -trough) / 4)
+    pos_ticks = 0
+    while pos_ticks * step < peak:
+        pos_ticks += 1
+    neg_ticks = 0
+    while -neg_ticks * step > trough:
+        neg_ticks += 1
+    if pos_ticks == 0 and neg_ticks == 0:
+        pos_ticks = 1  # all-zero series still gets a scale
+    y_max, y_min = pos_ticks * step, -neg_ticks * step
 
     def y_px(value: float) -> float:
-        return top + plot_h * (1 - value / y_max)
+        return top + plot_h * (y_max - value) / (y_max - y_min)
 
     band = plot_w / len(bars)
     bar_w = min(24.0, band - 2)
@@ -185,11 +211,11 @@ def _svg_chart(report: ReconciliationReport) -> str:
         f'xmlns="http://www.w3.org/2000/svg">'
     ]
 
-    # gridlines + y tick labels
-    for t in range(ticks + 1):
+    # gridlines + y tick labels (the zero baseline is drawn separately)
+    for t in range(-neg_ticks, pos_ticks + 1):
         value = t * step
         y = y_px(value)
-        if t > 0:
+        if t != 0:
             parts.append(
                 f'<line x1="{left}" y1="{y:.1f}" x2="{width - right}" y2="{y:.1f}" '
                 f'stroke="{GRID}" stroke-width="1"/>'
@@ -206,38 +232,30 @@ def _svg_chart(report: ReconciliationReport) -> str:
         f'y2="{top + plot_h}" stroke="{BASELINE}" stroke-width="1"/>'
     )
 
-    # bars: 4px rounded data-end, square at the baseline
-    base_y = top + plot_h
+    base_y = y_px(0.0)
     for i, (month, value, projected) in enumerate(bars):
+        if value == 0:
+            continue  # a zero month is the baseline itself, not a bar
         x = left + band * i + (band - bar_w) / 2
-        bar_top = y_px(value)
-        h = base_y - bar_top
-        r = min(4.0, h, bar_w / 2)
         fill = BAR_PROJECTED if projected else BAR_RECORDED
         kind = "projected" if projected else "recorded"
-        path = (
-            f"M{x:.1f},{base_y:.1f} "
-            f"L{x:.1f},{bar_top + r:.1f} "
-            f"Q{x:.1f},{bar_top:.1f} {x + r:.1f},{bar_top:.1f} "
-            f"L{x + bar_w - r:.1f},{bar_top:.1f} "
-            f"Q{x + bar_w:.1f},{bar_top:.1f} {x + bar_w:.1f},{bar_top + r:.1f} "
-            f"L{x + bar_w:.1f},{base_y:.1f} Z"
-        )
+        path = _bar_path(x, bar_w, base_y, y_px(value))
         title = f"{month:%B %Y} — ${value:,.2f} {kind}"
         parts.append(f'<path d="{path}" fill="{fill}"><title>{html.escape(title)}</title></path>')
 
-    # baseline on top of the bars' square ends
+    # zero baseline on top of the bars' square ends
     parts.append(
         f'<line x1="{left}" y1="{base_y:.1f}" x2="{width - right}" y2="{base_y:.1f}" '
         f'stroke="{BASELINE}" stroke-width="1"/>'
     )
 
-    # x labels: quarter months only, to keep 26 columns readable
+    # x labels: quarter months only, below the plot, to keep 26 columns readable
+    label_y = top + plot_h + 16
     for i, (month, _, _) in enumerate(bars):
         if month.month in (1, 4, 7, 10):
             cx = left + band * i + band / 2
             parts.append(
-                f'<text x="{cx:.1f}" y="{base_y + 16:.1f}" text-anchor="middle" '
+                f'<text x="{cx:.1f}" y="{label_y:.1f}" text-anchor="middle" '
                 f'font-size="10" fill="{INK_MUTED}">{month:%b %y}</text>'
             )
 
@@ -327,7 +345,11 @@ footer {
   font-size: 12px;
 }
 @media print {
-  body { background: #fff; }
+  body {
+    background: #fff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
   .page { max-width: none; min-height: 0; padding: 0; }
   section { break-inside: avoid; }
 }

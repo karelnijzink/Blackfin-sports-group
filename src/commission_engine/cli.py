@@ -19,6 +19,13 @@ from commission_engine.reconcile.report import ReconciliationReport, build_repor
 from commission_engine.rules.registry import build_rule, get_client
 
 
+def _positive_int(raw: str) -> int:
+    value = int(raw)
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"must be a positive number of months, got {raw}")
+    return value
+
+
 def _parse_target(raw: str) -> tuple[Decimal, Decimal]:
     try:
         low, high = raw.split(":")
@@ -54,7 +61,9 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="reference date for gap/partial-month flags (default: today)",
     )
-    run.add_argument("--horizon", type=int, default=12, help="months to project (default 12)")
+    run.add_argument(
+        "--horizon", type=_positive_int, default=12, help="months to project (default 12)"
+    )
     run.add_argument("--out", type=Path, default=Path("out"), help="output directory")
     run.add_argument(
         "--clients-file", type=Path, default=None, help="path to clients.yaml (default: repo root)"
@@ -68,7 +77,7 @@ def _print_summary(report: ReconciliationReport) -> None:
     print()
     presented = report.presented
     print(f"  Presented: {presented.label} -> ${presented.total:,.2f} over {report.horizon} months")
-    if report.target_low is not None:
+    if report.target_low is not None and report.target_high is not None:
         print(f"  Client's expected range: ${report.target_low:,.2f} - ${report.target_high:,.2f}")
         variance = report.headline_variance_pct
         if report.headline_in_range:

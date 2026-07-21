@@ -180,6 +180,8 @@ METHOD_SPECS: list[tuple[str, str, object]] = [
 
 
 def run_forecast(loaded: LoadResult, *, as_of: date, horizon: int = 12) -> ForecastResult:
+    if horizon < 1:
+        raise ValueError(f"horizon must be >= 1 month, got {horizon}")
     stream = build_monthly_stream(loaded.deals)
     flags = list(loaded.flags) + detect_stream_flags(stream, as_of=as_of)
 

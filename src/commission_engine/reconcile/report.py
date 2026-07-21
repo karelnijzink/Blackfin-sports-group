@@ -99,6 +99,10 @@ def build_report(
 ) -> ReconciliationReport:
     if not result.stream:
         raise ValueError("no usable deal rows: nothing to reconcile or project")
+    if not presented_rationale or not presented_rationale.strip():
+        raise ValueError(
+            "the presented method requires a stated rationale (set presented_rationale)"
+        )
     method_keys = [m.key for m in result.methods]
     if presented_method not in method_keys:
         raise ValueError(

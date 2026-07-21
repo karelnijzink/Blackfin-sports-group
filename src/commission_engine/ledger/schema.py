@@ -13,6 +13,12 @@ from pydantic import BaseModel, ConfigDict
 TWO_DP = Decimal("0.01")
 
 
+def display_money(value: Decimal) -> str:
+    """2dp with thousands separators — money is rendered 2dp everywhere,
+    including flag questions and error messages."""
+    return f"{value.quantize(TWO_DP, rounding=ROUND_HALF_UP):,.2f}"
+
+
 class Deal(BaseModel):
     """One row of the client's deal export. One deal, one revenue month."""
 
@@ -89,6 +95,6 @@ class CrossCheckError(ValueError):
         self.tolerance = tolerance
         super().__init__(
             f"Cross-check failed on row {source_row} ({deal_name!r}): "
-            f"computed commission {computed} vs recorded {recorded} "
-            f"(difference exceeds {tolerance})"
+            f"computed commission {display_money(computed)} vs recorded "
+            f"{display_money(recorded)} (difference exceeds {tolerance})"
         )

@@ -16,7 +16,7 @@ from pathlib import Path
 
 from commission_engine.rules.base import CommissionRule
 
-from .schema import CrossCheckError, Deal, Flag, FlagCode
+from .schema import CrossCheckError, Deal, Flag, FlagCode, display_money
 
 DEFAULT_TOLERANCE = Decimal("0.05")
 
@@ -72,15 +72,37 @@ def load_hubspot_csv(
     result = LoadResult()
     with open(path, newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
-        for line_no, raw in enumerate(reader, start=2):  # line 1 is the header
+        for raw in reader:
+            # physical line in the file where this record ended — DictReader
+            # swallows blank lines and quoted fields can span lines, so a
+            # simple record counter would point the client at the wrong row
+            line_no = reader.line_num
+
+            # fields beyond the header land under the None key as a list
+            surplus = raw.pop(None, None)
             if not any((v or "").strip() for v in raw.values()):
-                continue  # trailing blank line in the export
+                if surplus and any(str(v).strip() for v in surplus):
+                    result.flags.append(
+                        Flag(
+                            code=FlagCode.UNPARSEABLE_ROW,
+                            source_row=line_no,
+                            question=(
+                                f"Row {line_no} has more fields than the header and no "
+                                f"usable data, and was left out — can you correct the "
+                                f"export?"
+                            ),
+                            detail=f"surplus fields: {surplus}",
+                        )
+                    )
+                continue  # blank filler row in the export
 
             deal_name = (raw.get(COLUMNS["deal_name"]) or "").strip()
             try:
                 sales_amount = _parse_money(raw.get(COLUMNS["sales_amount"]))
                 commission_amount = _parse_money(raw.get(COLUMNS["commission_amount"]))
                 period_start = _parse_date(raw.get(COLUMNS["period_start"]))
+                close_date = _parse_date(raw.get(COLUMNS["close_date"]))
+                period_end = _parse_date(raw.get(COLUMNS["period_end"]))
             except (InvalidOperation, ValueError) as exc:
                 result.flags.append(
                     Flag(
@@ -117,7 +139,23 @@ def load_hubspot_csv(
                 )
                 continue
 
-            computed = rule.commission(sales_amount)
+            try:
+                computed = rule.commission(sales_amount)
+            except (ValueError, ArithmeticError) as exc:
+                result.flags.append(
+                    Flag(
+                        code=FlagCode.UNPARSEABLE_ROW,
+                        source_row=line_no,
+                        question=(
+                            f"Row {line_no} ({deal_name or 'unnamed'}): the commission "
+                            f"rule could not be applied ({exc}), so the row was left "
+                            f"out — how should this row be treated?"
+                        ),
+                        detail=f"{deal_name}: {exc}",
+                    )
+                )
+                continue
+
             if commission_amount is None:
                 result.flags.append(
                     Flag(
@@ -125,7 +163,8 @@ def load_hubspot_csv(
                         source_row=line_no,
                         question=(
                             f"Row {line_no} ({deal_name or 'unnamed'}) has no recorded "
-                            f"commission to check our {computed} against — can you confirm it?"
+                            f"commission to check our {display_money(computed)} against — "
+                            f"can you confirm it?"
                         ),
                         detail=f"{deal_name}: no Commission Amount",
                     )
@@ -145,10 +184,13 @@ def load_hubspot_csv(
                         source_row=line_no,
                         question=(
                             f"Row {line_no} ({deal_name or 'unnamed'}): we compute "
-                            f"{computed} but the export records {commission_amount} — "
-                            f"which is right?"
+                            f"{display_money(computed)} but the export records "
+                            f"{display_money(commission_amount)} — which is right?"
                         ),
-                        detail=f"{deal_name}: computed {computed} vs recorded {commission_amount}",
+                        detail=(
+                            f"{deal_name}: computed {display_money(computed)} vs "
+                            f"recorded {display_money(commission_amount)}"
+                        ),
                     )
                 )
 
@@ -158,9 +200,9 @@ def load_hubspot_csv(
                     deal_name=deal_name or f"row {line_no}",
                     company=(raw.get(COLUMNS["company"]) or "").strip() or None,
                     record_id=(raw.get(COLUMNS["record_id"]) or "").strip() or None,
-                    close_date=_parse_date(raw.get(COLUMNS["close_date"])),
+                    close_date=close_date,
                     period_start=period_start,
-                    period_end=_parse_date(raw.get(COLUMNS["period_end"])),
+                    period_end=period_end,
                     sales_amount=sales_amount,
                     computed_commission=computed,
                     commission_amount=commission_amount,

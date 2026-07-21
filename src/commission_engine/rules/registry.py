@@ -78,6 +78,10 @@ def load_clients(path: str | Path | None = None) -> dict[str, ClientConfig]:
         rule_raw = dict(cfg["rule"])
         rule_type = rule_raw.pop("type")
         target = cfg.get("target_range") or {}
+        if (target.get("low") is None) != (target.get("high") is None):
+            raise ValueError(
+                f"client {client_id!r}: target_range needs both low and high (or neither)"
+            )
         clients[client_id] = ClientConfig(
             client_id=client_id,
             display_name=cfg.get("display_name", client_id),

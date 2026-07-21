@@ -109,3 +109,15 @@ class TestRegistry:
 
         with pytest.raises(ValueError):
             build_rule(RuleSpec(type="mystery", params={}))
+
+    def test_partial_target_range_rejected(self, tmp_path):
+        partial = tmp_path / "clients.yaml"
+        partial.write_text(
+            "clients:\n"
+            "  half:\n"
+            "    display_name: Half\n"
+            "    rule: {type: flat, rate: '0.10'}\n"
+            "    target_range: {low: '97000'}\n"
+        )
+        with pytest.raises(ValueError, match="target_range"):
+            load_clients(partial)
