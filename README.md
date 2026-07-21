@@ -1,10 +1,13 @@
-# commission-engine
+# Blackfin commission engine
 
 Deterministic commission-revenue forecasting for Blackfin Sports Group,
 built by Nisse Group. Reads a structured deal export, applies the client's
 commission rule, and produces a reconciliation report: our computed numbers
 beside the client's known numbers, with variance, so every figure can be
 checked by hand.
+
+New here? `HANDOFF.md` is the short version: what's in the box and how to
+run it on a fresh machine.
 
 Ground rules, in order:
 

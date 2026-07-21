@@ -37,6 +37,8 @@ class ReconciliationReport(BaseModel):
     as_of: date
     horizon: int
     rule_description: str | None = None
+    prepared_for: str | None = None
+    prepared_by: str | None = None
 
     target_low: Decimal | None
     target_high: Decimal | None
@@ -96,6 +98,8 @@ def build_report(
     presented_method: str,
     presented_rationale: str,
     rule_description: str | None = None,
+    prepared_for: str | None = None,
+    prepared_by: str | None = None,
 ) -> ReconciliationReport:
     if not result.stream:
         raise ValueError("no usable deal rows: nothing to reconcile or project")
@@ -144,6 +148,8 @@ def build_report(
         as_of=result.as_of,
         horizon=result.horizon,
         rule_description=rule_description,
+        prepared_for=prepared_for,
+        prepared_by=prepared_by,
         target_low=target_low,
         target_high=target_high,
         historical=result.stream,

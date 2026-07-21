@@ -19,6 +19,13 @@ from .tiered import Tier, Tiered
 DEFAULT_CLIENTS_FILE = Path(__file__).resolve().parents[3] / "clients.yaml"
 
 
+class OrgConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    prepared_for: str | None = None
+    prepared_by: str | None = None
+
+
 class RuleSpec(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -68,6 +75,17 @@ def build_rule(spec: RuleSpec) -> CommissionRule:
             f"unknown rule type {spec.type!r}; known types: {sorted(RULE_TYPES)}"
         ) from None
     return factory(spec.params)
+
+
+def load_organization(path: str | Path | None = None) -> OrgConfig:
+    """The organization block: who the reports are prepared for and by."""
+    path = Path(path) if path else DEFAULT_CLIENTS_FILE
+    raw = yaml.safe_load(path.read_text())
+    org = raw.get("organization") or {}
+    return OrgConfig(
+        prepared_for=org.get("prepared_for"),
+        prepared_by=org.get("prepared_by"),
+    )
 
 
 def load_clients(path: str | Path | None = None) -> dict[str, ClientConfig]:

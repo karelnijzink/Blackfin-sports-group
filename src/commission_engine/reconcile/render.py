@@ -23,8 +23,25 @@ def _money(value: Decimal) -> str:
     return f"${value:,.2f}"
 
 
+def _no_widow(text: str) -> str:
+    """Join the last two words with a non-breaking space so a wrapped line
+    never strands a single word (visible in the printed PDF)."""
+    head, sep, tail = text.rpartition(" ")
+    return f"{head} {tail}" if sep else text
+
+
 def _pct(value: Decimal) -> str:
     return f"{value:+.1f}%"
+
+
+def _prepared_line(report: ReconciliationReport) -> str | None:
+    if report.prepared_for and report.prepared_by:
+        return f"Prepared for {report.prepared_for} by {report.prepared_by}"
+    if report.prepared_for:
+        return f"Prepared for {report.prepared_for}"
+    if report.prepared_by:
+        return f"Prepared by {report.prepared_by}"
+    return None
 
 
 def _headline_lines(report: ReconciliationReport) -> list[str]:
@@ -72,6 +89,9 @@ def render_markdown(report: ReconciliationReport) -> str:
         meta.append(f"commission rule: {report.rule_description}")
     meta.append(f"projection horizon: {report.horizon} months")
     out.append(" · ".join(meta))
+    prepared = _prepared_line(report)
+    if prepared:
+        out.append(prepared)
     out.append("")
 
     out.append("## A. Headline")
@@ -134,7 +154,8 @@ def render_markdown(report: ReconciliationReport) -> str:
         out.append("No flags raised by this run.")
     out.append("")
     out.append("---")
-    out.append(FOOTER)
+    footer = FOOTER if prepared is None else f"{FOOTER} {prepared}."
+    out.append(footer)
     out.append("")
     return "\n".join(out)
 
@@ -376,6 +397,9 @@ def render_html(report: ReconciliationReport) -> str:
         meta.append(f"commission rule: {esc(report.rule_description)}")
     meta.append(f"projection horizon: {report.horizon} months")
     out.append(f'<div class="meta">{" · ".join(meta)}</div>')
+    prepared = _prepared_line(report)
+    if prepared:
+        out.append(f'<div class="meta">{esc(_no_widow(prepared))}</div>')
     out.append("</header>")
 
     # A. headline
@@ -416,8 +440,14 @@ def render_html(report: ReconciliationReport) -> str:
     out.append("</tbody></table>")
     out.append(f'<p class="rationale">Presented method rationale: {esc(presented.rationale)}</p>')
     out.append(
-        '<p class="note">Every method is computed and shown; none is discarded. '
-        "The presented method is a choice, stated above, not a hidden fit.</p>"
+        '<p class="note">'
+        + esc(
+            _no_widow(
+                "Every method is computed and shown; none is discarded. "
+                "The presented method is a choice, stated above, not a hidden fit."
+            )
+        )
+        + "</p>"
     )
     out.append("</section>")
 
@@ -467,7 +497,7 @@ def render_html(report: ReconciliationReport) -> str:
         f'<td class="num">{esc(_money(presented.total))}</td></tr></tfoot></table>'
     )
     out.append("</div></div>")
-    out.append(f'<p class="note">{esc(ROUNDING_NOTE)}</p>')
+    out.append(f'<p class="note">{esc(_no_widow(ROUNDING_NOTE))}</p>')
     out.append("</section>")
 
     # D. flags
@@ -483,6 +513,7 @@ def render_html(report: ReconciliationReport) -> str:
         out.append("<p>No flags raised by this run.</p>")
     out.append("</section>")
 
-    out.append(f"<footer>{esc(FOOTER)}</footer>")
+    footer = FOOTER if prepared is None else f"{FOOTER} {prepared}."
+    out.append(f"<footer>{esc(_no_widow(footer))}</footer>")
     out.append("</div></body></html>")
     return "\n".join(out)

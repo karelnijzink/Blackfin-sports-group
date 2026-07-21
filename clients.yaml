@@ -2,6 +2,10 @@
 # at most, one new rule class under src/commission_engine/rules/.
 # Nothing in the engine, loader, or report code changes per client.
 
+organization:
+  prepared_for: Blackfin Sports Group
+  prepared_by: Nisse Group
+
 clients:
   blast_media:
     display_name: Blast Media

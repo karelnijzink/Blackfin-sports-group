@@ -12,7 +12,14 @@ from decimal import ROUND_HALF_UP, Decimal
 from pydantic import BaseModel, ConfigDict
 
 from commission_engine.ledger.csv_source import LoadResult
-from commission_engine.ledger.schema import TWO_DP, Deal, Flag, FlagCode, MonthlyEntry
+from commission_engine.ledger.schema import (
+    TWO_DP,
+    Deal,
+    Flag,
+    FlagCode,
+    MonthlyEntry,
+    display_money,
+)
 
 from . import methods
 
@@ -152,13 +159,14 @@ def detect_stream_flags(stream: list[MonthlyEntry], *, as_of: date) -> list[Flag
                     code=FlagCode.OUTLIER_MONTH,
                     month=entry.month,
                     question=(
-                        f"{entry.month:%B %Y} commission ({entry.commission_2dp:,.2f}) is "
-                        f"more than {OUTLIER_MULTIPLIER}x the median of its neighbouring "
-                        f"months — is that a one-off, or volume to expect again?"
+                        f"{entry.month:%B %Y} commission "
+                        f"({display_money(entry.commission_2dp)}) is more than "
+                        f"{OUTLIER_MULTIPLIER}x the median of its neighbouring months — "
+                        f"is that a one-off, or volume to expect again?"
                     ),
                     detail=(
-                        f"{entry.commission_2dp:,.2f} vs neighbour median {median:,.2f}; "
-                        f"{entry.deal_count} deals in the month"
+                        f"{display_money(entry.commission_2dp)} vs neighbour median "
+                        f"${median:,.2f}; {entry.deal_count} deals in the month"
                     ),
                 )
             )

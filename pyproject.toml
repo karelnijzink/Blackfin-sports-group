@@ -1,7 +1,7 @@
 [project]
-name = "commission-engine"
+name = "blackfin-commission-engine"
 version = "0.1.0"
-description = "Deterministic commission-revenue forecasting engine (Blackfin Sports Group / Nisse Group)"
+description = "Deterministic commission-revenue forecasting engine for Blackfin Sports Group, by Nisse Group"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.7",

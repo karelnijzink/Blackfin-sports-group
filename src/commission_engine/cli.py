@@ -16,7 +16,7 @@ from commission_engine.ledger.csv_source import load_hubspot_csv
 from commission_engine.ledger.schema import CrossCheckError
 from commission_engine.reconcile.render import render_html, render_markdown
 from commission_engine.reconcile.report import ReconciliationReport, build_report
-from commission_engine.rules.registry import build_rule, get_client
+from commission_engine.rules.registry import build_rule, get_client, load_organization
 
 
 def _positive_int(raw: str) -> int:
@@ -110,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
     client = get_client(args.client, args.clients_file)
+    org = load_organization(args.clients_file)
     rule = build_rule(client.rule)
 
     try:
@@ -137,6 +138,8 @@ def main(argv: list[str] | None = None) -> int:
         presented_method=client.presented_method,
         presented_rationale=client.presented_rationale,
         rule_description=rule.describe(),
+        prepared_for=org.prepared_for,
+        prepared_by=org.prepared_by,
     )
 
     args.out.mkdir(parents=True, exist_ok=True)
