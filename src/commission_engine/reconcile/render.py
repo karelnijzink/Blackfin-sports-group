@@ -58,9 +58,9 @@ def _headline_lines(report: ReconciliationReport) -> list[str]:
         if report.headline_in_range:
             lines.append("The projection falls inside the client's expected range.")
         elif variance < 0:
-            lines.append(f"Variance: {variance:+.1f}% below the range floor.")
+            lines.append(f"Variance: {abs(variance):.1f}% below the range floor.")
         else:
-            lines.append(f"Variance: {variance:+.1f}% above the range ceiling.")
+            lines.append(f"Variance: {abs(variance):.1f}% above the range ceiling.")
     first = report.historical[0].month
     last = report.historical[-1].month
     lines.append(
@@ -104,12 +104,12 @@ def render_markdown(report: ReconciliationReport) -> str:
     out.append("")
     mid = report.target_mid
     vs_label = f"vs midpoint ({_money(mid)})" if mid is not None else "vs midpoint"
-    out.append(f"| Method | {report.horizon}-mo total | {vs_label} | In range | |")
-    out.append("|---|---:|---:|:--:|---|")
+    out.append(f"| Method | {report.horizon}-mo total | {vs_label} | In range |")
+    out.append("|---|---:|---:|:--:|")
     for row in report.methods:
         total, variance, in_range = _method_cells(row)
-        marker = "**presented**" if row.presented else ""
-        out.append(f"| {row.label} | {total} | {variance} | {in_range} | {marker} |")
+        label = f"{row.label} — **presented**" if row.presented else row.label
+        out.append(f"| {label} | {total} | {variance} | {in_range} |")
     out.append("")
     out.append(f"Presented method rationale: {report.presented.rationale}")
     out.append("")
@@ -337,10 +337,11 @@ tr.presented td { background: #eef4fc; }
 tr.presented td:first-child { border-left: 3px solid var(--recorded); }
 .chip {
   font-size: 11px;
-  color: var(--ink-2);
-  border: 1px solid var(--hairline);
+  color: var(--recorded);
+  border: 1px solid var(--recorded);
   border-radius: 3px;
   padding: 1px 6px;
+  margin-left: 8px;
   white-space: nowrap;
 }
 tfoot td { font-weight: 600; border-bottom: none; }
@@ -423,19 +424,18 @@ def render_html(report: ReconciliationReport) -> str:
     out.append("<table><thead><tr>")
     out.append(
         f'<th>Method</th><th class="num">{report.horizon}-mo total</th>'
-        f'<th class="num">{esc(vs_label)}</th><th class="center">In range</th><th></th>'
+        f'<th class="num">{esc(vs_label)}</th><th class="center">In range</th>'
     )
     out.append("</tr></thead><tbody>")
     for row in report.methods:
         total, variance, in_range = _method_cells(row)
         cls = ' class="presented"' if row.presented else ""
-        chip = '<span class="chip">presented</span>' if row.presented else ""
+        chip = ' <span class="chip">presented</span>' if row.presented else ""
         out.append(
-            f"<tr{cls}><td>{esc(row.label)}</td>"
+            f"<tr{cls}><td>{esc(row.label)}{chip}</td>"
             f'<td class="num">{esc(total)}</td>'
             f'<td class="num">{esc(variance)}</td>'
-            f'<td class="center">{esc(in_range)}</td>'
-            f"<td>{chip}</td></tr>"
+            f'<td class="center">{esc(in_range)}</td></tr>'
         )
     out.append("</tbody></table>")
     out.append(f'<p class="rationale">Presented method rationale: {esc(presented.rationale)}</p>')

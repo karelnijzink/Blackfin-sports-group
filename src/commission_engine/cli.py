@@ -85,7 +85,7 @@ def _print_summary(report: ReconciliationReport) -> None:
             print("  Inside the expected range.")
         else:
             side = "below the range floor" if variance < 0 else "above the range ceiling"
-            print(f"  Variance: {variance:+.1f}% {side}")
+            print(f"  Variance: {abs(variance):.1f}% {side}")
     print()
     print(f"  {'Method':<32}{'12-mo total':>14}  in range")
     for row in report.methods:

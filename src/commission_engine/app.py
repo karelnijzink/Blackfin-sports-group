@@ -31,7 +31,7 @@ MUTED = "#898781"
 GRID = "#e1e0d9"
 BLUE = "#2a78d6"
 BLUE_DARK = "#1c5cab"
-GOOD = "#0ca30c"
+GOOD = "#006300"
 BAD = "#d03b3b"
 
 FOOTER = "Deterministic math. Every number computed by code from the deal export."
@@ -81,7 +81,6 @@ class ForecastWindow:
         root.title(APP_TITLE)
         root.configure(bg=SURFACE)
         root.resizable(False, False)
-        root.geometry("600x460")
 
         family, _ = _pick_font(root)
         f = lambda size, weight="normal": (family, size, weight)  # noqa: E731
@@ -108,12 +107,14 @@ class ForecastWindow:
             borderwidth=1,
             relief="solid",
             focuscolor=SURFACE,
-            padding=(18, 9),
+            padding=(24, 11),
         )
         style.map("Ghost.TButton", background=[("active", "#f0efec")])
 
         outer = ttk.Frame(root, padding=(44, 34, 44, 0))
         outer.pack(fill="both", expand=True)
+        # fixed content width; height always fits the visible state
+        ttk.Frame(outer, width=512, height=0).pack()
 
         ttk.Label(
             outer, text="BLACKFIN SPORTS GROUP", foreground=INK2, font=(family, 10, "bold")
@@ -142,14 +143,14 @@ class ForecastWindow:
 
         self.action = ttk.Button(
             outer,
-            text="Choose the deal export (CSV)",
+            text="Choose the deal export (CSV)…",
             style="Accent.TButton",
             command=self.choose_and_run,
         )
-        self.action.pack(anchor="w", pady=(22, 0))
+        self.action.pack(anchor="w", pady=(22, 14))
 
-        self.status = ttk.Label(outer, text="", foreground=MUTED, font=f(10))
-        self.status.pack(anchor="w", pady=(14, 0))
+        self.status = ttk.Label(outer, text="", foreground=INK2, font=f(10))
+        self.status.pack(anchor="w")
 
         # result panel — filled in on success or refusal
         self.panel = tk.Frame(outer, bg=SURFACE, highlightthickness=1, highlightbackground=GRID)
@@ -173,7 +174,7 @@ class ForecastWindow:
         footer = tk.Frame(root, bg=SURFACE)
         footer.pack(side="bottom", fill="x")
         tk.Frame(footer, bg=GRID, height=1).pack(fill="x", padx=44)
-        tk.Label(footer, text=FOOTER, bg=SURFACE, fg=MUTED, font=f(9)).pack(
+        tk.Label(footer, text=FOOTER, bg=SURFACE, fg=INK2, font=f(9)).pack(
             anchor="w", padx=44, pady=(8, 14)
         )
 
@@ -185,19 +186,30 @@ class ForecastWindow:
         for child in self.panel_buttons.winfo_children():
             child.destroy()
         self.panel.pack_forget()
+        self.intro.pack(anchor="w")
+        self.action.pack(anchor="w", pady=(22, 14))
+        self.status.pack(anchor="w")
+        self.root.geometry("")
 
-    def _show_panel(self, accent: str, title: str, body: str, buttons: list[tuple[str, object]]):
-        self._clear_panel()
+    def _show_panel(
+        self, accent: str, title: str, body: str, buttons: list[tuple[str, object, bool]]
+    ):
+        for child in self.panel_buttons.winfo_children():
+            child.destroy()
+        # the result panel carries the one primary action; the intro leaves
+        self.intro.pack_forget()
+        self.action.pack_forget()
+        self.status.pack_forget()
         self.panel.configure(highlightbackground=accent, highlightcolor=accent)
         self.panel_title.configure(text=title, fg=accent if accent != GRID else INK)
         self.panel_body.configure(text=body)
-        for label, command in buttons:
-            btn_style = "Accent.TButton" if command == self.open_report else "Ghost.TButton"
+        for label, command, primary in buttons:
+            btn_style = "Accent.TButton" if primary else "Ghost.TButton"
             self.ttk.Button(self.panel_buttons, text=label, style=btn_style, command=command).pack(
                 side="left", padx=(0, 10)
             )
-        self.panel.pack(fill="x", pady=(22, 26))
-        self.root.geometry("")  # grow the window to fit the result panel
+        self.panel.pack(fill="x", pady=(4, 26))
+        self.root.geometry("")  # fit the window to the result panel
 
     def choose_and_run(self):
         from tkinter import filedialog
@@ -224,7 +236,7 @@ class ForecastWindow:
                 "commission rule, and the engine refuses to build a forecast on "
                 f"numbers that don't check out.\n\n{exc}\n\n"
                 "Send this message to Nisse Group and we'll chase it down.",
-                [("Choose a different file", self.choose_and_run)],
+                [("Choose a different file…", self.choose_and_run, True)],
             )
         except Exception as exc:  # anything else: say it plainly, don't vanish
             self.status.configure(text="")
@@ -232,7 +244,7 @@ class ForecastWindow:
                 BAD,
                 "Something went wrong — no report was produced.",
                 f"{exc}\n\nSend this message to Nisse Group and we'll chase it down.",
-                [("Try again", self.choose_and_run)],
+                [("Try again…", self.choose_and_run, True)],
             )
         else:
             self.status.configure(text="")
@@ -240,8 +252,11 @@ class ForecastWindow:
             self._show_panel(
                 GOOD,
                 "Report ready — it just opened in your browser.",
-                f"Saved in the “{REPORTS_FOLDER}” folder next to your export:\n{self.report_path}",
-                [("Open report", self.open_report), ("Run another", self.choose_and_run)],
+                f"Saved next to your export, in “{REPORTS_FOLDER}”:\n{self.report_path.name}",
+                [
+                    ("Run another forecast…", self.choose_and_run, True),
+                    ("Open report again", self.open_report, False),
+                ],
             )
         finally:
             self.action.state(["!disabled"])

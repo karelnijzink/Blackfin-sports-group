@@ -9,6 +9,31 @@ checked by hand.
 New here? `HANDOFF.md` is the short version: what's in the box and how to
 run it on a fresh machine.
 
+## What it looks like
+
+One window, one job: choose the deal export, read the report.
+
+<img src="docs/media/app_idle.png" width="560" alt="The desktop app — one button: choose the deal export">
+
+A real run — the engine checks all 48 rows, runs every projection method,
+and the report opens in the browser about a second later:
+
+<img src="docs/media/demo.gif" width="720" alt="Live run: pick the export, the report opens">
+
+The reconciliation report: our computed numbers beside the client's own,
+every method shown, nothing discarded.
+
+<img src="docs/media/report_top.png" width="720" alt="Report headline and method table">
+<img src="docs/media/report_chart.png" width="720" alt="Monthly view: recorded months, then the projection">
+
+After a run — and when a number doesn't check out. The engine refuses to
+forecast on data that fails its cross-check and names the exact row:
+
+<p>
+<img src="docs/media/app_success.png" width="420" alt="Success: report ready">
+<img src="docs/media/app_refusal.png" width="420" alt="Refusal: no forecast was produced, with the failing row named">
+</p>
+
 Ground rules, in order:
 
 1. **Deterministic math.** Every number in a forecast or reconciliation is

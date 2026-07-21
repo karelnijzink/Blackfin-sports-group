@@ -96,5 +96,5 @@ class CrossCheckError(ValueError):
         super().__init__(
             f"Cross-check failed on row {source_row} ({deal_name!r}): "
             f"computed commission {display_money(computed)} vs recorded "
-            f"{display_money(recorded)} (difference exceeds {tolerance})"
+            f"{display_money(recorded)} (difference exceeds ${tolerance})"
         )
